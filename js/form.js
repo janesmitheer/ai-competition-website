@@ -1,6 +1,8 @@
 /**
- * 报名表单脚本
+ * 报名表单脚本 - 对接 Cloudflare Worker API
  */
+const API_BASE = 'https://ai-competition-api.janesmitheer.workers.dev';
+
 document.addEventListener('DOMContentLoaded', () => {
     initCharCount();
     initFileUpload();
@@ -22,7 +24,7 @@ function initCharCount() {
 }
 
 /**
- * 文件上传
+ * 文件上传（目前仅做本地验证，附件功能待完善）
  */
 function initFileUpload() {
     const uploadArea = document.getElementById('uploadArea');
@@ -50,15 +52,11 @@ function initFileUpload() {
         uploadArea.style.borderColor = 'var(--border)';
         
         const file = e.dataTransfer.files[0];
-        if (file) {
-            handleFile(file);
-        }
+        if (file) handleFile(file);
     });
     
     fileInput.addEventListener('change', () => {
-        if (fileInput.files[0]) {
-            handleFile(fileInput.files[0]);
-        }
+        if (fileInput.files[0]) handleFile(fileInput.files[0]);
     });
     
     removeFile.addEventListener('click', (e) => {
@@ -69,19 +67,14 @@ function initFileUpload() {
     });
     
     function handleFile(file) {
-        // 验证文件大小（50MB）
         if (file.size > 50 * 1024 * 1024) {
             alert('文件大小不能超过50MB');
             return;
         }
-        
-        // 验证文件类型
         if (!file.name.match(/\.(pdf|doc|docx|zip)$/i)) {
             alert('只支持 PDF、Word、ZIP 格式');
             return;
         }
-        
-        // 显示成功状态
         uploadPlaceholder.style.display = 'none';
         uploadSuccess.style.display = 'flex';
         fileName.textContent = file.name;
@@ -89,7 +82,7 @@ function initFileUpload() {
 }
 
 /**
- * 表单提交
+ * 表单提交 - 对接真实 API
  */
 function initFormSubmit() {
     const form = document.getElementById('registerForm');
@@ -100,10 +93,7 @@ function initFormSubmit() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // 验证表单
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
         
         // 显示加载状态
         submitBtn.disabled = true;
@@ -114,23 +104,35 @@ function initFormSubmit() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        // 获取团队成员
-        const members = [];
-        for (let i = 1; i <= 4; i++) {
-            const member = data[`member${i}`];
-            if (member) members.push(member);
-        }
-        data.members = members.join('、');
+        // 构造 API 请求体（字段映射到多维表格）
+        const payload = {
+            '团队名称': data.teamName,
+            '所属部门': data.department || '',
+            '作品分类': mapCategory(data.category),
+            '作品名称': data.projectName,
+            '核心问题': data.problem || '',
+            'MVP方案': data.mvp || '',
+            '效果指标': '',
+            '团队成员': data.members || '',
+            '队长': data.leaderName,
+        };
         
         try {
-            // 这里可以发送到后端API
-            // 演示使用 setTimeout 模拟API调用
-            await simulateSubmit(data);
+            const response = await fetch(`${API_BASE}/api/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             
-            // 显示成功
-            showSuccess(data);
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccess({ teamName: data.teamName, projectName: data.projectName });
+            } else {
+                alert('提交失败：' + (result.error || '未知错误'));
+            }
         } catch (error) {
-            alert('提交失败，请稍后重试');
+            alert('网络错误，请检查网络后重试');
             console.error(error);
         } finally {
             submitBtn.disabled = false;
@@ -140,18 +142,13 @@ function initFormSubmit() {
     });
     
     function validateForm() {
-        const required = ['teamName', 'department', 'category', 'projectName', 'coreProblem', 'leaderName', 'leaderPhone', 'leaderEmail'];
         const phone = document.getElementById('leaderPhone').value;
         const email = document.getElementById('leaderEmail').value;
-        const agreement = document.getElementById('agreement').checked;
+        const agreement = document.getElementById('agreement');
         
-        for (const field of required) {
-            const input = document.getElementById(field);
-            if (input && !input.value.trim()) {
-                input.focus();
-                alert('请填写所有必填项');
-                return false;
-            }
+        if (!agreement.checked) {
+            alert('请阅读并同意参赛协议和隐私政策');
+            return false;
         }
         
         if (!/^1[3-9]\d{9}$/.test(phone)) {
@@ -164,19 +161,18 @@ function initFormSubmit() {
             return false;
         }
         
-        if (!agreement) {
-            alert('请阅读并同意参赛协议和隐私政策');
-            return false;
-        }
-        
         return true;
     }
     
-    async function simulateSubmit(data) {
-        return new Promise((resolve) => {
-            console.log('提交数据:', data);
-            setTimeout(resolve, 1500);
-        });
+    function mapCategory(value) {
+        const map = {
+            'sales': '销售提效',
+            'supply': '供应链优化',
+            'rd': '研发辅助',
+            'operation': '内部运营',
+            'custom': '自拟'
+        };
+        return map[value] || value || '';
     }
     
     function showSuccess(data) {
@@ -189,7 +185,6 @@ function initFormSubmit() {
         document.getElementById('successTeamName').textContent = data.teamName;
         document.getElementById('successProjectName').textContent = data.projectName;
         
-        // 滚动到顶部
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
