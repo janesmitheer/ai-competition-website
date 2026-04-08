@@ -136,6 +136,63 @@
             color: rgba(255,255,255,0.5);
             margin-top: 8px;
         }
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s, background 0.3s;
+            position: relative;
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.05);
+        }
+        .upload-area.drag-over {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.1);
+        }
+        .upload-placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        .upload-placeholder svg {
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.4);
+        }
+        .upload-placeholder p {
+            margin: 4px 0;
+            font-size: 15px;
+        }
+        .upload-placeholder span {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        .upload-success {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            color: #667eea;
+            font-size: 14px;
+        }
+        .file-icon { font-size: 20px; }
+        .remove-file {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 50%;
+            color: rgba(255,255,255,0.6);
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 24px;
+            transition: background 0.2s;
+        }
+        .remove-file:hover {
+            background: rgba(255,100,100,0.3);
+            color: #ff6b6b;
+        }
         /* 成功提示弹窗 */
         .modal-overlay {
             display: none;
@@ -276,8 +333,22 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Demo视频链接（选填）</label>
-                    <input type="url" name="demoVideo" placeholder="请输入Demo视频的URL链接（如B站、飞书视频等）">
+                    <label>Demo视频（选填）</label>
+                    <div class="upload-area" id="demoUploadArea">
+                        <input type="file" id="demoFile" name="demoFile" accept="video/*" style="display:none">
+                        <div class="upload-placeholder" id="demoPlaceholder">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            <p>点击上传Demo视频</p>
+                            <span>支持 MP4/AVI/MOV，最大100MB</span>
+                        </div>
+                        <div class="upload-success" id="demoSuccess" style="display:none">
+                            <span class="file-icon">🎬</span>
+                            <span id="demoFileName">文件已上传</span>
+                            <button type="button" class="remove-file" id="removeDemo">×</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -331,6 +402,7 @@
 
     <script>
         const API_BASE = 'https://ai-competition-api.janesmitheer.workers.dev';
+        let uploadedDemoFileName = '';
 
         // 分类选项选中效果
         document.querySelectorAll('.category-option').forEach(option => {
@@ -340,37 +412,100 @@
             });
         });
 
+        // Demo视频上传处理
+        const demoUploadArea = document.getElementById('demoUploadArea');
+        const demoFile = document.getElementById('demoFile');
+        const demoPlaceholder = document.getElementById('demoPlaceholder');
+        const demoSuccess = document.getElementById('demoSuccess');
+        const demoFileName = document.getElementById('demoFileName');
+        const removeDemo = document.getElementById('removeDemo');
+
+        if (demoUploadArea) {
+            demoUploadArea.addEventListener('click', (e) => {
+                if (e.target !== removeDemo) {
+                    demoFile.click();
+                }
+            });
+
+            demoFile.addEventListener('change', () => {
+                if (demoFile.files[0]) {
+                    handleDemoFile(demoFile.files[0]);
+                }
+            });
+
+            removeDemo.addEventListener('click', (e) => {
+                e.stopPropagation();
+                demoFile.value = '';
+                uploadedDemoFileName = '';
+                demoPlaceholder.style.display = 'block';
+                demoSuccess.style.display = 'none';
+            });
+        }
+
+        function handleDemoFile(file) {
+            // 验证文件大小（100MB）
+            if (file.size > 100 * 1024 * 1024) {
+                alert('文件大小不能超过100MB');
+                return;
+            }
+            // 验证文件类型
+            if (!file.name.match(/\.(mp4|avi|mov|wmv|flv)$/i)) {
+                alert('只支持 MP4/AVI/MOV/WMV/FLV 格式');
+                return;
+            }
+            uploadedDemoFileName = file.name;
+            demoPlaceholder.style.display = 'none';
+            demoSuccess.style.display = 'flex';
+            demoFileName.textContent = file.name;
+        }
+
+        // 弹窗关闭
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('show');
+        }
+
+        // 点击遮罩关闭
+        document.getElementById('successModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('successModal')) {
+                closeModal();
+            }
+        });
+
+        // ESC键关闭
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
         // 表单提交
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
             const submitBtn = form.querySelector('.btn-submit');
             const originalText = submitBtn.textContent;
-            
+
             // 验证手机号
             const phone = form.leaderPhone.value;
             if (!/^1[3-9]\d{9}$/.test(phone)) {
                 alert('请输入正确的11位手机号');
                 return;
             }
-            
+
             // 验证邮箱
             const email = form.leaderEmail.value;
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 alert('请输入正确的邮箱地址');
                 return;
             }
-            
+
             // 显示加载状态
             submitBtn.disabled = true;
             submitBtn.textContent = '提交中...';
-            
+
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
-            
+
             // 构造 API 请求体
             const categoryMap = { sales: '销售提效', supply: '供应链优化', rd: '研发辅助', operation: '内部运营', custom: '自拟' };
-            // 飞书日期字段需要毫秒时间戳
             const nowMs = Date.now();
             const payload = {
                 '团队名称': data.teamName,
@@ -391,20 +526,40 @@
                 '成员4': data.member4 || '',
                 '报名时间': nowMs,
             };
-            
+
             try {
-                const response = await fetch(`${API_BASE}/api/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
+                let response;
+                if (demoFile.files[0]) {
+                    // 有文件：用 multipart/form-data 发送
+                    const fd = new FormData();
+                    fd.append('json', JSON.stringify(payload));
+                    fd.append('demoVideo', demoFile.files[0]);
+                    response = await fetch(`${API_BASE}/api/register`, {
+                        method: 'POST',
+                        body: fd
+                    });
+                } else {
+                    // 无文件：用 JSON 发送
+                    response = await fetch(`${API_BASE}/api/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
                 const result = await response.json();
-                
+
                 if (result.success) {
-                    alert(`🎉 报名成功！\n\n团队：${data.teamName}\n作品：${data.projectName}\n\n请等待管理员审核。`);
-                    form.reset();
-                    document.querySelectorAll('.category-option').forEach(o => o.classList.remove('selected'));
+                    // 显示成功弹窗（不清空输入框）
+                    document.getElementById('modalInfo').innerHTML = `
+                        <div style="text-align:left; background:rgba(255,255,255,0.05); padding:20px; border-radius:12px; margin-top:10px;">
+                            <div style="margin-bottom:12px;"><strong>团队名称：</strong>${data.teamName}</div>
+                            <div style="margin-bottom:12px;"><strong>作品名称：</strong>${data.projectName}</div>
+                            <div><strong>队长：</strong>${data.leaderName}</div>
+                        </div>
+                        <div style="margin-top:20px; color:#28a745; font-size:14px;">✅ 请等待管理员审核</div>
+                    `;
+                    document.getElementById('successModal').classList.add('show');
                 } else {
                     alert('提交失败：' + (result.error || '未知错误，请稍后重试'));
                 }
