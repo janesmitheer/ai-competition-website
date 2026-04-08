@@ -200,6 +200,24 @@
                 <div class="form-group">
                     <label>MVP方案 <span class="required">*</span></label>
                     <textarea name="mvp" required placeholder="描述MVP方案的核心功能和实现思路"></textarea>
+                    <div class="note">
+                        💡 请使用 <a href="https://f1l5e2ythy.feishu.cn/sync/VFLRdZuFEsjFotbRwkXckpEendg" target="_blank" style="color:#667eea;">MVP方案模板</a> 填写
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>产品工作原理（选填）</label>
+                    <textarea name="productPrinciple" placeholder="说明产品的工作流程和技术实现原理"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>效果指标（选填）</label>
+                    <textarea name="effectMetrics" placeholder="量化预期效果，如：效率提升XX%、成本降低XX万元/年"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Demo视频链接（选填）</label>
+                    <input type="url" name="demoVideo" placeholder="请输入Demo视频的URL链接（如B站、飞书视频等）">
                 </div>
 
                 <div class="form-row">
@@ -219,8 +237,20 @@
                         <input type="email" name="leaderEmail" required placeholder="请输入邮箱">
                     </div>
                     <div class="form-group">
-                        <label>团队成员（选填）</label>
-                        <input type="text" name="members" placeholder="用逗号分隔">
+                        <label>职位（选填）</label>
+                        <input type="text" name="leaderTitle" placeholder="请输入职位">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>团队成员（选填，最多4人）</label>
+                    <div class="form-row">
+                        <input type="text" name="member1" placeholder="成员1姓名">
+                        <input type="text" name="member2" placeholder="成员2姓名">
+                    </div>
+                    <div class="form-row" style="margin-top: 12px;">
+                        <input type="text" name="member3" placeholder="成员3姓名">
+                        <input type="text" name="member4" placeholder="成员4姓名">
                     </div>
                 </div>
 
@@ -270,6 +300,8 @@
             
             // 构造 API 请求体
             const categoryMap = { sales: '销售提效', supply: '供应链优化', rd: '研发辅助', operation: '内部运营', custom: '自拟' };
+            // 飞书日期字段需要毫秒时间戳
+            const nowMs = Date.now();
             const payload = {
                 '团队名称': data.teamName,
                 '所属部门': data.department || '',
@@ -277,9 +309,17 @@
                 '作品名称': data.projectName,
                 '核心问题': data.problem || '',
                 'MVP方案': data.mvp || '',
-                '效果指标': '',
-                '团队成员': data.members || '',
+                '产品工作原理': data.productPrinciple || '',
+                '效果指标': data.effectMetrics || '',
                 '队长': data.leaderName,
+                '队长手机': data.leaderPhone,
+                '队长邮箱': data.leaderEmail,
+                '职位': data.leaderTitle || '',
+                '成员1': data.member1 || '',
+                '成员2': data.member2 || '',
+                '成员3': data.member3 || '',
+                '成员4': data.member4 || '',
+                '报名时间': nowMs,
             };
             
             try {
