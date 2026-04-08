@@ -136,6 +136,66 @@
             color: rgba(255,255,255,0.5);
             margin-top: 8px;
         }
+        /* 成功提示弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(102,126,234,0.4);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(102,126,234,0.3);
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .modal-info {
+            color: rgba(255,255,255,0.75);
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        .modal-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 14px 40px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102,126,234,0.4);
+        }
     </style>
 </head>
 <body>
@@ -259,6 +319,16 @@
         </div>
     </div>
 
+    <!-- 成功提示弹窗 -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-card">
+            <div class="modal-icon">🎉</div>
+            <div class="modal-title">报名成功！</div>
+            <div class="modal-info" id="modalInfo"></div>
+            <button class="modal-btn" onclick="closeModal()">好的</button>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'https://ai-competition-api.janesmitheer.workers.dev';
 
@@ -309,7 +379,6 @@
                 '作品名称': data.projectName,
                 '核心问题': data.problem || '',
                 'MVP方案': data.mvp || '',
-                '产品工作原理': data.productPrinciple || '',
                 '效果指标': data.effectMetrics || '',
                 '队长': data.leaderName,
                 '队长手机': data.leaderPhone,
